@@ -2,6 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
+import { useCart } from '../../../context/CartContext';
+import Toast from '../../Toast';
 
 interface Product {
   productId: number;
@@ -23,6 +25,8 @@ export default function Products() {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
+  const { addToCart } = useCart();
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
   const filteredProducts = products?.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -39,8 +43,20 @@ export default function Products() {
   const handleAddToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
     if (quantity > 0) {
-      // TODO: Implement cart functionality
-      alert(`Added ${quantity} items to cart`);
+      const product = products?.find(p => p.productId === productId);
+      if (product) {
+        addToCart({
+          productId: product.productId,
+          name: product.name,
+          price: product.price,
+          quantity: quantity,
+          imgName: product.imgName
+        });
+        setToast({ 
+          message: `Added ${quantity} ${product.name} to cart`, 
+          visible: true 
+        });
+      }
       setQuantities(prev => ({
         ...prev,
         [productId]: 0
@@ -167,6 +183,13 @@ export default function Products() {
           </div>
         </div>
       </div>
+      {toast.visible && (
+        <Toast 
+          message={toast.message} 
+          type="success" 
+          onClose={() => setToast({ ...toast, visible: false })} 
+        />
+      )}
     </div>
   );
 }
