@@ -129,7 +129,7 @@ fi
 
 # Create Azure Container Registry in production resource group
 # Remove hyphens and convert to lowercase for ACR name
-ACR_NAME=$(echo "${REPO_NAME}" | tr -d '-' | tr '[:upper:]' '[:lower:]')
+ACR_NAME=$(echo "${REPO_NAME}""ahmedbham" | tr -d '-' | tr '[:upper:]' '[:lower:]')
 echo "🔍 Checking if Azure Container Registry '$ACR_NAME' exists..."
 ACR_EXISTS=$(az acr check-name --name $ACR_NAME --query 'nameAvailable' -o tsv)
 
@@ -148,16 +148,31 @@ else
 fi
 
 echo "🔑 Update admin-enabled for ACR..."
-az acr update -n $ACR_NAME --admin-enabled true > /dev/null
-echo "✅ Admin access enabled for Azure Container Registry '$ACR_NAME'"
+# Add resource group parameter to ensure we're updating the right ACR
+if az acr update -n $ACR_NAME --admin-enabled true --resource-group $RG_PROD > /dev/null; then
+    echo "✅ Admin access enabled for Azure Container Registry '$ACR_NAME'"
+else
+    echo "⚠️ Failed to enable admin access for Azure Container Registry '$ACR_NAME'"
+fi
 
 # Grant ACR access to the service principal
 echo "🔑 Granting AcrPull role to service principal for ACR..."
-az role assignment create \
-    --assignee-object-id $(az ad sp show --id $CLIENT_ID --query id -o tsv) \
-    --assignee-principal-type ServicePrincipal \
-    --role AcrPull \
-    --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_PROD/providers/Microsoft.ContainerRegistry/registries/$ACR_NAME > /dev/null
+# Get the object ID with error checking
+SP_OBJECT_ID=$(az ad sp show --id $CLIENT_ID --query id -o tsv 2>/dev/null)
+if [ -z "$SP_OBJECT_ID" ]; then
+    echo "⚠️ Could not get object ID for service principal"
+else
+    # Add error checking for role assignment
+    if az role assignment create \
+        --assignee-object-id $SP_OBJECT_ID \
+        --assignee-principal-type ServicePrincipal \
+        --role AcrPull \
+        --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_PROD/providers/Microsoft.ContainerRegistry/registries/$ACR_NAME > /dev/null; then
+        echo "✅ AcrPull role assigned successfully"
+    else
+        echo "⚠️ Failed to assign AcrPull role to service principal"
+    fi
+fi
 
 # Assign role to specific resource groups
 echo "🔑 Assigning Contributor role to service principal for resource group '$RG_STAGING'..."
@@ -213,6 +228,12 @@ create_federated_credential "${ORG}-${REPO_NAME}-${ENV_STAGING}" "repo:${ORG}/${
 create_federated_credential "${ORG}-${REPO_NAME}-${ENV_PROD}" "repo:${ORG}/${REPO_NAME}:environment:${ENV_PROD}" "GitHub Actions for deploying to production environment"
 create_federated_credential "${ORG}-${REPO_NAME}-main" "repo:${ORG}/${REPO_NAME}:ref:refs/heads/main" "GitHub Actions for main branch workflows"
 
+# gh variable set "AZURE_CLIENT_ID" -b "$CLIENT_ID" -r "$REPO" > /dev/null
+# gh variable set "AZURE_TENANT_ID" -b "$TENANT_ID" -r "$REPO" > /dev/null
+# gh variable set "AZURE_SUBSCRIPTION_ID" -b "$SUBSCRIPTION_ID" -r "$REPO" > /dev/null
+# gh variable set "AZURE_RESOURCE_GROUP" -b "$RG_STAGING" -r "$REPO" > /dev/null
+# gh variable set "AZURE_RESOURCE_GROUP_PROD" -b "$RG_PROD" -r "$REPO" > /dev/null
+# gh variable set "AZURE_ACR_NAME" -b "$ACR_NAME" -r "$REPO" > /dev/null
 # Function to create or update GitHub variables
 set_github_variable() {
     local var_name=$1
@@ -220,7 +241,7 @@ set_github_variable() {
     
     if [ "$HAS_GH_CLI" = true ] && [ "$HAS_REPO_ACCESS" = true ]; then
         echo "🔧 Setting GitHub variable: $var_name"
-        if gh variable set "$var_name" -b "$var_value" -R "$REPO" &> /dev/null; then
+        if gh variable set "$var_name" -b "$var_value"  &> /dev/null; then
             echo "✅ Successfully set GitHub variable: $var_name"
         else
             echo "⚠️ Failed to set GitHub variable: $var_name"
@@ -228,14 +249,20 @@ set_github_variable() {
     fi
 }
 
-# Create GitHub environments if they don't exist
+
 create_github_environment() {
     local env_name=$1
     local require_approval=$2
     
     if [ "$HAS_GH_CLI" = true ] && [ "$HAS_REPO_ACCESS" = true ]; then
         echo "🏗️ Checking if environment '$env_name' exists..."
-        ENV_DATA=$(gh api repos/$REPO/environments)
+        # Use the correct API endpoint format with explicit method
+        ENV_DATA=$(gh api --method GET "/repos/$REPO/environments" 2>/dev/null || echo '{"environments":[]}')
+        if [ $? -ne 0 ]; then
+            echo "⚠️ Error checking environments. API may have changed or insufficient permissions."
+            # We'll try to create it anyway
+        fi
+        
         ENV_EXISTS=$(echo "$ENV_DATA" | jq -r --arg env "$env_name" '.environments[] | select(.name == $env) | .name' 2>/dev/null)
         
         if [ -z "$ENV_EXISTS" ]; then
@@ -248,11 +275,15 @@ create_github_environment() {
                 "deployment_branch_policy": null
             }'
             
-            # Create the environment first with proper JSON formatting
-            gh api repos/$REPO/environments/$env_name \
-                -X PUT \
+            # Create the environment first with proper JSON formatting using the correct API endpoint
+            if gh api --method PUT "/repos/$REPO/environments/$env_name" \
                 -H "Content-Type: application/json" \
-                --input - <<< "$JSON_PAYLOAD" > /dev/null
+                --input - <<< "$JSON_PAYLOAD" > /dev/null; then
+                echo "✅ Environment '$env_name' created successfully"
+            else
+                echo "⚠️ Failed to create environment '$env_name'"
+                return 1
+            fi
         else
             echo "ℹ️ Environment '$env_name' already exists"
         fi
@@ -262,10 +293,10 @@ create_github_environment() {
             echo "🔒 Setting up environment '$env_name' with approval required from $GITHUB_USER"
             
             # Get the user's ID first
-            USER_DATA=$(gh api users/$GITHUB_USER)
+            USER_DATA=$(gh api --method GET "/users/$GITHUB_USER" 2>/dev/null || echo '{"id":""}')
             USER_ID=$(echo "$USER_DATA" | jq -r '.id')
             
-            if [ -n "$USER_ID" ]; then
+            if [ -n "$USER_ID" ] && [ "$USER_ID" != "null" ]; then
                 # Update environment settings with approval requirements
                 APPROVAL_JSON="{
                     \"wait_timer\": 0,
@@ -278,13 +309,14 @@ create_github_environment() {
                     \"deployment_branch_policy\": null
                 }"
                 
-                # Update the environment settings
-                gh api repos/$REPO/environments/$env_name \
-                    -X PUT \
+                # Update the environment settings with correct API endpoint
+                if gh api --method PUT "/repos/$REPO/environments/$env_name" \
                     -H "Content-Type: application/json" \
-                    --input - <<< "$APPROVAL_JSON" > /dev/null
-                
-                echo "✅ Environment '$env_name' configured with $GITHUB_USER as required reviewer"
+                    --input - <<< "$APPROVAL_JSON" > /dev/null; then
+                    echo "✅ Environment '$env_name' configured with $GITHUB_USER as required reviewer"
+                else
+                    echo "⚠️ Failed to configure environment '$env_name' with approval requirements"
+                fi
             else
                 echo "⚠️ Could not get user ID for $GITHUB_USER, environment created without reviewers"
             fi
@@ -296,12 +328,14 @@ create_github_environment() {
                 "deployment_branch_policy": null
             }'
             
-            gh api repos/$REPO/environments/$env_name \
-                -X PUT \
+            # Use the correct API endpoint
+            if gh api --method PUT "/repos/$REPO/environments/$env_name" \
                 -H "Content-Type: application/json" \
-                --input - <<< "$NO_APPROVAL_JSON" > /dev/null
-            
-            echo "✅ Environment '$env_name' configured without approval requirements"
+                --input - <<< "$NO_APPROVAL_JSON" > /dev/null; then
+                echo "✅ Environment '$env_name' configured without approval requirements"
+            else
+                echo "⚠️ Failed to configure environment '$env_name' without approval requirements"
+            fi
         fi
     fi
 }
