@@ -228,23 +228,23 @@ create_federated_credential "${ORG}-${REPO_NAME}-${ENV_STAGING}" "repo:${ORG}/${
 create_federated_credential "${ORG}-${REPO_NAME}-${ENV_PROD}" "repo:${ORG}/${REPO_NAME}:environment:${ENV_PROD}" "GitHub Actions for deploying to production environment"
 create_federated_credential "${ORG}-${REPO_NAME}-main" "repo:${ORG}/${REPO_NAME}:ref:refs/heads/main" "GitHub Actions for main branch workflows"
 
-# gh variable set "AZURE_CLIENT_ID" -b "$CLIENT_ID" -r "$REPO" > /dev/null
-# gh variable set "AZURE_TENANT_ID" -b "$TENANT_ID" -r "$REPO" > /dev/null
-# gh variable set "AZURE_SUBSCRIPTION_ID" -b "$SUBSCRIPTION_ID" -r "$REPO" > /dev/null
-# gh variable set "AZURE_RESOURCE_GROUP" -b "$RG_STAGING" -r "$REPO" > /dev/null
-# gh variable set "AZURE_RESOURCE_GROUP_PROD" -b "$RG_PROD" -r "$REPO" > /dev/null
-# gh variable set "AZURE_ACR_NAME" -b "$ACR_NAME" -r "$REPO" > /dev/null
-# Function to create or update GitHub variables
-set_github_variable() {
-    local var_name=$1
-    local var_value=$2
+# gh secret set "AZURE_CLIENT_ID" -b "$CLIENT_ID" -r "$REPO" > /dev/null
+# gh secret set "AZURE_TENANT_ID" -b "$TENANT_ID" -r "$REPO" > /dev/null
+# gh secret set "AZURE_SUBSCRIPTION_ID" -b "$SUBSCRIPTION_ID" -r "$REPO" > /dev/null
+# gh secret set "AZURE_RESOURCE_GROUP" -b "$RG_STAGING" -r "$REPO" > /dev/null
+# gh secret set "AZURE_RESOURCE_GROUP_PROD" -b "$RG_PROD" -r "$REPO" > /dev/null
+# gh secret set "AZURE_ACR_NAME" -b "$ACR_NAME" -r "$REPO" > /dev/null
+# Function to create or update GitHub secrets
+set_github_secret() {
+    local secret_name=$1
+    local secret_value=$2
     
     if [ "$HAS_GH_CLI" = true ] && [ "$HAS_REPO_ACCESS" = true ]; then
-        echo "🔧 Setting GitHub variable: $var_name"
-        if gh variable set "$var_name" -b "$var_value"  &> /dev/null; then
-            echo "✅ Successfully set GitHub variable: $var_name"
+        echo "🔧 Setting GitHub secret: $secret_name"
+        if gh secret set "$secret_name" -b "$secret_value" &> /dev/null; then
+            echo "✅ Successfully set GitHub secret: $secret_name"
         else
-            echo "⚠️ Failed to set GitHub variable: $var_name"
+            echo "⚠️ Failed to set GitHub secret: $secret_name"
         fi
     fi
 }
@@ -340,17 +340,17 @@ create_github_environment() {
     fi
 }
 
-# Set GitHub repository variables if GitHub CLI is available and repository is accessible
+# Set GitHub repository secrets if GitHub CLI is available and repository is accessible
 if [ "$HAS_GH_CLI" = true ] && [ "$HAS_REPO_ACCESS" = true ]; then
     echo ""
-    echo "🔧 Setting GitHub repository variables..."
-    set_github_variable "AZURE_CLIENT_ID" "$CLIENT_ID"
-    set_github_variable "AZURE_TENANT_ID" "$TENANT_ID"
-    set_github_variable "AZURE_SUBSCRIPTION_ID" "$SUBSCRIPTION_ID"
-    set_github_variable "AZURE_RESOURCE_GROUP" "$RG_STAGING"
-    set_github_variable "AZURE_RESOURCE_GROUP_PROD" "$RG_PROD"
-    set_github_variable "AZURE_ACR_NAME" "$ACR_NAME"
-    echo "✅ GitHub repository variables have been set"
+    echo "🔧 Setting GitHub repository secrets..."
+    set_github_secret "AZURE_CLIENT_ID" "$CLIENT_ID"
+    set_github_secret "AZURE_TENANT_ID" "$TENANT_ID"
+    set_github_secret "AZURE_SUBSCRIPTION_ID" "$SUBSCRIPTION_ID"
+    set_github_secret "AZURE_RESOURCE_GROUP" "$RG_STAGING"
+    set_github_secret "AZURE_RESOURCE_GROUP_PROD" "$RG_PROD"
+    set_github_secret "AZURE_ACR_NAME" "$ACR_NAME"
+    echo "✅ GitHub repository secrets have been set"
     
     echo ""
     echo "🏗️ Creating GitHub environments..."
@@ -359,7 +359,7 @@ if [ "$HAS_GH_CLI" = true ] && [ "$HAS_REPO_ACCESS" = true ]; then
     echo "✅ GitHub environments have been created"
 else
     echo ""
-    echo "⚠️ GitHub repository variables and environments were not set automatically"
+    echo "⚠️ GitHub repository secrets and environments were not set automatically"
 fi
 
 echo ""
@@ -372,7 +372,7 @@ echo "✓ Created or verified Azure Container Registry:"
 echo "  - $ACR_NAME (in $RG_PROD)"
 echo "✓ Created or verified service principal"
 echo "✓ Configured OIDC federated credentials"
-echo "✓ Set up GitHub repository variables (if GitHub CLI was available)"
+echo "✓ Set up GitHub repository secrets (if GitHub CLI was available)"
 echo "✓ Created GitHub environments (if GitHub CLI was available):"
 echo "  - $ENV_STAGING (no approval required)"
 if [ -n "$GITHUB_USER" ]; then
@@ -381,7 +381,7 @@ else
     echo "  - $ENV_PROD (with required approval)"
 fi
 echo ""
-echo "📋 GitHub Actions Variables:"
+echo "📋 GitHub Actions Secrets:"
 echo "-------------------------------"
 echo "AZURE_CLIENT_ID: $CLIENT_ID"
 echo "AZURE_TENANT_ID: $TENANT_ID"
@@ -392,8 +392,8 @@ echo "AZURE_ACR_NAME: $ACR_NAME"
 echo ""
 
 if [ "$HAS_GH_CLI" = false ] || [ "$HAS_REPO_ACCESS" = false ]; then
-    echo "⚠️ You need to manually create these variables in your GitHub repository settings"
-    echo "   Go to: https://github.com/$REPO/settings/variables/actions"
+    echo "⚠️ You need to manually create these secrets in your GitHub repository settings"
+    echo "   Go to: https://github.com/$REPO/settings/secrets/actions"
     echo ""
     echo "⚠️ You also need to manually create environments in your GitHub repository settings:"
     echo "   1. Go to: https://github.com/$REPO/settings/environments"
