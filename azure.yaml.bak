@@ -1,0 +1,20 @@
+name: octocat-supply-chain
+services:
+  api:
+    project: ./api
+    language: js
+    host: appservice
+    docker:
+      path: ./api/Dockerfile
+      context: ./api
+  frontend:
+    project: ./frontend
+    language: js
+    host: appservice
+    docker:
+      path: ./frontend/Dockerfile
+      context: ./frontend
+hooks:
+  postdeploy:
+    shell: sh
+    run: infra/hooks/postdeploy.sh

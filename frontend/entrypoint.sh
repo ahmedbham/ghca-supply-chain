@@ -1,24 +1,28 @@
 #!/bin/sh
 
 # Debug: Print the initial values received from the environment
-echo "Initial API_HOST: $API_HOST"
-echo "Initial API_PORT: $API_PORT"
-echo "Intial API_PROTOCOL: $API_PROTOCOL"
+echo "Initial API_URL: $API_URL"
+echo "Initial PORT: $PORT"
+echo "Initial WEBSITES_PORT: $WEBSITES_PORT"
 
-# Use environment variables provided by App Service, otherwise use defaults
-# The ':=' syntax assigns the default value if the variable is unset or null.
-EFFECTIVE_API_HOST=${API_HOST:=api}
-EFFECTIVE_API_PORT=${API_PORT:=3000}
-EFFECTIVE_API_PROTOCOL=${API_PROTOCOL:=https}
+# Check for direct API_URL (used in Azure App Service)
+if [ ! -z "$API_URL" ]; then
+  echo "Using provided API_URL: $API_URL"
+  RUNTIME_CONFIG_CONTENT="window.RUNTIME_CONFIG = { API_URL: '$API_URL' };"
+else
+  # Fallback to constructing from separate parts if needed
+  EFFECTIVE_API_HOST=${API_HOST:=api}
+  EFFECTIVE_API_PORT=${API_PORT:=3000}
+  EFFECTIVE_API_PROTOCOL=${API_PROTOCOL:=https}
+  
+  # Check for Azure App Settings format (APPSETTING_API_HOST)
+  if [ ! -z "$APPSETTING_API_HOST" ]; then
+    echo "Found APPSETTING_API_HOST: $APPSETTING_API_HOST"
+    EFFECTIVE_API_HOST=$APPSETTING_API_HOST
+  fi
 
-# Check for Azure App Settings format (APPSETTING_API_HOST)
-if [ ! -z "$APPSETTING_API_HOST" ]; then
-  echo "Found APPSETTING_API_HOST: $APPSETTING_API_HOST"
-  EFFECTIVE_API_HOST=$APPSETTING_API_HOST
-fi
-
-if [ ! -z "$APPSETTING_API_PORT" ]; then
-  echo "Found APPSETTING_API_PORT: $APPSETTING_API_PORT"
+  if [ ! -z "$APPSETTING_API_PORT" ]; then
+    echo "Found APPSETTING_API_PORT: $APPSETTING_API_PORT"
   EFFECTIVE_API_PORT=$APPSETTING_API_PORT
 fi
 
@@ -37,16 +41,18 @@ export API_PORT=$EFFECTIVE_API_PORT
 export API_PROTOCOL=$EFFECTIVE_API_PROTOCOL
 
 # Create runtime config JS file with the current API URL
-# Default ports: 80,443
-PORT_SECTION=""
-if [ "$EFFECTIVE_API_PORT" != "80" ] && [ "$EFFECTIVE_API_PORT" != "443" ]; then
-  PORT_SECTION=":${EFFECTIVE_API_PORT}"
+if [ -z "$RUNTIME_CONFIG_CONTENT" ]; then
+  # Default ports: 80,443
+  PORT_SECTION=""
+  if [ "$EFFECTIVE_API_PORT" != "80" ] && [ "$EFFECTIVE_API_PORT" != "443" ]; then
+    PORT_SECTION=":${EFFECTIVE_API_PORT}"
+  fi
+  
+  RUNTIME_CONFIG_CONTENT="window.RUNTIME_CONFIG = { API_URL: '${API_PROTOCOL}://${API_HOST}${PORT_SECTION}' };"
 fi
 
 cat > /usr/share/nginx/html/runtime-config.js << EOF
-window.RUNTIME_CONFIG = {
-  API_URL: "${API_PROTOCOL}://${API_HOST}${PORT_SECTION}"
-};
+${RUNTIME_CONFIG_CONTENT}
 console.log("Runtime config loaded:", window.RUNTIME_CONFIG);
 EOF
 

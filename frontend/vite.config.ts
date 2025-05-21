@@ -11,5 +11,6 @@ export default defineConfig({
   },
   define: {
     'process.env.CODESPACE_NAME': JSON.stringify(process.env.CODESPACE_NAME),
+    'process.env.API_URL': JSON.stringify(process.env.API_URL || 'http://localhost:3000'),
   }
 })

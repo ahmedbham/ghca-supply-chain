@@ -14,6 +14,7 @@ This isn't just another demo app - it's a carefully crafted showcase that demons
 - 🧪 **Test Generation** - Exhibit Copilot's ability to analyze coverage and generate meaningful tests
 - 🔄 **CI/CD & IaC** - Generate deployment workflows and infrastructure code with natural language
 - 🎯 **Custom Instructions** - Show how Copilot can be tailored to understand internal frameworks and standards
+- ☁️ **Azure Deployment** - Deploy the entire application to Azure with Azure Developer CLI (azd)
 
 ## 🏗️ Architecture
 
@@ -73,6 +74,28 @@ erDiagram
 Or use the VS Code tasks:
 - `Cmd/Ctrl + Shift + P` -> `Run Task` -> `Build All`
 - Use the Debug panel to run `Start API & Frontend`
+
+## ☁️ Azure Deployment
+
+Deploy the application to Azure using the Azure Developer CLI (azd):
+
+1. Install the Azure Developer CLI:
+   ```bash
+   curl -fsSL https://aka.ms/install-azd.sh | bash
+   ```
+
+2. Login to Azure:
+   ```bash
+   azd auth login
+   ```
+
+3. Initialize and deploy:
+   ```bash
+   azd init
+   azd up
+   ```
+
+For more detailed instructions, see the [Azure Deployment Guide](./docs/azure-deployment.md).
 
 ## 🛠️ MCP Server Setup (Optional)
 

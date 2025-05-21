@@ -11,6 +11,7 @@ COPY --from=builder /app/dist/ /usr/share/nginx/html/
 COPY --from=builder /app/public/* /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY entrypoint.sh /entrypoint.sh
+COPY web.config /usr/share/nginx/html/
 
 # Set proper permissions for the nginx html directory and entrypoint script
 RUN chmod -R 755 /usr/share/nginx/html && \
@@ -18,9 +19,11 @@ RUN chmod -R 755 /usr/share/nginx/html && \
     chmod +x /entrypoint.sh
 
 # Set default environment variables
-ENV API_HOST=api
-ENV API_PORT=3000
+ENV API_URL=http://api:3000
+ENV PORT=80
+ENV WEBSITES_PORT=80
 
+# Make port 80 available to the world outside this container
 EXPOSE 80
 
 # Use ENTRYPOINT instead of CMD for better handling in App Service

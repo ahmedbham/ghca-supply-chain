@@ -14,6 +14,12 @@ const getBaseUrl = () => {
         return window.RUNTIME_CONFIG.API_URL;
     }
     
+    // Check if we have an API_URL environment variable
+    if (process.env.API_URL) {
+        console.log('Using environment variable API_URL:', process.env.API_URL);
+        return process.env.API_URL;
+    }
+    
     // Check if we're in a Codespace
     const codespaceName = process.env.CODESPACE_NAME;
     if (codespaceName) {

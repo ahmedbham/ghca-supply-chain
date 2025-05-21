@@ -1,0 +1,123 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.35.1.17967",
+      "templateHash": "17172257462951788876"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The Azure region to deploy to"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    }
+  },
+  "variables": {
+    "resourceToken": "[toLower(uniqueString(subscription().id, parameters('environmentName'), parameters('location')))]",
+    "prefix": "[format('{0}-{1}', parameters('environmentName'), variables('resourceToken'))]",
+    "apiServiceName": "[format('{0}-api', variables('prefix'))]",
+    "frontendServiceName": "[format('{0}-frontend', variables('prefix'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[format('{0}-asp', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "B1"
+      },
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('apiServiceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('azd-service-name', 'api'))]",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('prefix')))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "linuxFxVersion": "NODE|18-lts",
+          "appSettings": [
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('frontendServiceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('azd-service-name', 'frontend'))]",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('prefix')))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "linuxFxVersion": "NODE|18-lts",
+          "appSettings": [
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            },
+            {
+              "name": "API_URL",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('apiServiceName')), '2022-03-01').defaultHostName)]"
+            },
+            {
+              "name": "PORT",
+              "value": "8080"
+            },
+            {
+              "name": "WEBSITE_PORT",
+              "value": "8080"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('apiServiceName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-asp', variables('prefix')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "API_URI": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('apiServiceName')), '2022-03-01').defaultHostName)]"
+    },
+    "FRONTEND_URI": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('frontendServiceName')), '2022-03-01').defaultHostName)]"
+    }
+  }
+}
