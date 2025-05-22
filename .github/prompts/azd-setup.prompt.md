@@ -29,12 +29,12 @@ I'll help you restructure your project to make it compatible with Azure Develope
     services:
       api:
          project: ./api
-         language: typescript # or appropriate language
-         host: appservice
+         language: js # or appropriate language
+         host: containerapp
       frontend:
-         project: ./front
-         language: typescript # or appropriate language
-         host: staticwebapp
+         project: ./frontend
+         language: js # or appropriate language
+         host: containerapp
     ```
 
 3. **Place appropriate language indicators** in each folder:
