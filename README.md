@@ -2,123 +2,30 @@
 
 ![OctoCAT Supply Chain](./frontend/public/hero.png)
 
-Welcome to the OctoCAT Supply Chain Management System - your go-to demo for showcasing the incredible capabilities of GitHub Copilot, GHAS, and the power of AI-assisted development!
+## Introduction
+The purpose of this branch is to demonstrate using GitHub Copilot to generate Bicep templates for an Azure Developer CLI (azd) project structure. This project is structured to support both a backend API and a frontend application, with infrastructure managed through Bicep.
 
-## ✨ What Makes This Demo Special
-
-This isn't just another demo app - it's a carefully crafted showcase that demonstrates the full spectrum of GitHub's AI capabilities:
-
-- 🤖 **Copilot Agent Mode & Vision** - Watch Copilot understand UI designs and implement complex features across multiple files
-- 🎭 **MCP Server Integration** - Demonstrate extended capabilities with Playwright for testing and GitHub API integration
-- 🛡️ **Security First** - Showcase GHAS scanning and Copilot-powered vulnerability fixes
-- 🧪 **Test Generation** - Exhibit Copilot's ability to analyze coverage and generate meaningful tests
-- 🔄 **CI/CD & IaC** - Generate deployment workflows and infrastructure code with natural language
-- 🎯 **Custom Instructions** - Show how Copilot can be tailored to understand internal frameworks and standards
-- ☁️ **Azure Deployment** - Deploy the entire application to Azure with Azure Developer CLI (azd)
-
-## 🏗️ Architecture
-
-The application is built using modern TypeScript with a clean separation of concerns:
-
-```mermaid
-erDiagram
-    Headquarters ||--o{ Branch: has
-    Branch ||--o{ Order: placed_at
-    Order ||--o{ OrderDetail: contains
-    OrderDetail ||--o{ OrderDetailDelivery: fulfilled_by
-    OrderDetail }|--|| Product: references
-    Delivery ||--o{ OrderDetailDelivery: includes
-    Supplier ||--o{ Delivery: provides
-```
-
-### Tech Stack
-- **Frontend**: React 18+, TypeScript, Tailwind CSS, Vite
-- **Backend**: Express.js, TypeScript, OpenAPI/Swagger
-- **DevOps**: Docker
-
-## 🎯 Key Demo Scenarios
-
-1. **Vibe Coding**
-   - Implement a shopping cart from a design mockup
-   - Watch Copilot analyze, plan, and implement across multiple files
-   - Show real-time UI updates and state management
-
-2. **Automated Testing**
-   - Generate BDD feature files
-   - Create and execute Playwright tests
-   - Enhance unit test coverage with intelligent test generation
-
-3. **Security and Best Practices**
-   - Scan for vulnerabilities using GHAS
-   - Generate automated fixes
-   - Implement security best practices with Copilot guidance
-
-4. **DevOps Automation**
-   - Generate GitHub Actions workflows
-   - Create infrastructure as code
-   - Set up container deployments
-
-## 🚀 Getting Started
-
-1. Clone this repository
-2. Build the projects:
-   ```bash
-   # Build API and Frontend
-   npm install && npm run build
+## Instructions
+1. Open the `.github/azd-setup.prompt.md` file.
+2. Open GitHub Copilot Chat and set MODE to `agent`.
+3. Type `run the prompt` in the chat input.
+4. Review the generated Bicep templates in the `infra/` directory.
+5. Ensure the project structure is as follows:
    ```
-3. Start the application:
-   ```bash
-   npm run dev
+   /
+   ├── api/              # Backend application
+   │   ├── package.json  # (or equivalent for your language)
+   │   └── ...
+   ├── front/            # Frontend application
+   │   ├── package.json  # (or equivalent for your language) 
+   │   └── ...
+   ├── infra/            # Infrastructure as Code
+   │   ├── main.bicep    # Main Bicep file
+   │   └── ...
+   └── azure.yaml        # Azure config file
    ```
-
-Or use the VS Code tasks:
-- `Cmd/Ctrl + Shift + P` -> `Run Task` -> `Build All`
-- Use the Debug panel to run `Start API & Frontend`
-
-## ☁️ Azure Deployment
-
-Deploy the application to Azure using the Azure Developer CLI (azd):
-
-1. Install the Azure Developer CLI:
-   ```bash
-   curl -fsSL https://aka.ms/install-azd.sh | bash
-   ```
-
-2. Login to Azure:
-   ```bash
-   azd auth login
-   ```
-
-3. Initialize and deploy:
-   ```bash
-   azd init
-   azd up
-   ```
-
-For more detailed instructions, see the [Azure Deployment Guide](./docs/azure-deployment.md).
-
-## 🛠️ MCP Server Setup (Optional)
-
-To showcase extended capabilities:
-
-1. Install Docker/Podman for the GitHub MCP server
-2. Use VS Code command palette:
-   - `MCP: List servers` -> `playwright` -> `Start server`
-   - `MCP: List servers` -> `github` -> `Start server`
-3. Configure with a GitHub PAT (required for GitHub MCP server)
-
-## 📚 Documentation
-
-- [Detailed Architecture](./docs/architecture.md)
-- [Complete Demo Script](./docs/demo-script.md)
-
-## 🎓 Pro Tips for Solution Engineers
-
-- Practice the demos before customer presentations
-- Remember Copilot is non-deterministic - be ready to adapt
-- Mix and match demo scenarios based on your audience
-- Keep your GitHub PAT handy for MCP demos
-
----
-
-*This entire project, including the hero image, was created using GitHub Copilot! Even this README was generated by Copilot using the project documentation.* 🤖✨
+6. Ensure the `azure.yaml` file is correctly configured to point to both the API and frontend applications.
+7. Run `azd init` to initialize the Azure Developer CLI project.
+8. If there are any errors, use GitHub Copilot in Agent Mode to troubleshoot and fix them by modifying the Bicep templates or the project structure as needed.
+9. Once everything is set up, you can deploy your applications using `azd up`.
+10. Execute `azd pipepline config` to create a CI/CD pipeline for your project.

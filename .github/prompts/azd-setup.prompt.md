@@ -43,6 +43,6 @@ I'll help you restructure your project to make it compatible with Azure Develope
     - For Python applications: Include `requirements.txt`
     - For Java applications: Include `pom.xml` or `build.gradle`
 
-4. **Create a minimal `infra/main.bicep` file** to help azd identify the project structure.
+4. **Create required bicep files** to help azd implement the project structure.
 
 When you run `azd init` after making these changes, it should correctly identify both applications and allow you to proceed with the initialization process.
