@@ -8,7 +8,7 @@ I need to create Bicep templates for deploying my applications to Azure. My appl
 1. Backend API (located in /api folder)
 2. Frontend app (located in /frontend folder)
 
-Please generate the following Bicep files:
+Please generate the following Bicep files using Azure Verified Modules (AVM) where applicable:
 
 1. **main.bicep**: The main deployment file that references all other modules
 2. **containerRegistry.bicep**: For creating an Azure Container Registry to store my container images
