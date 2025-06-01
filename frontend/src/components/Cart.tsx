@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useCart, CartItem } from '../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Toast from './Toast';
 
 export default function Cart() {
   const { cartItems, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
   const [toast, setToast] = useState<{ message: string; visible: boolean; type: 'success' | 'error' | 'info' }>({ 
     message: '', 
     visible: false,
@@ -154,7 +157,16 @@ export default function Cart() {
               </div>
             </div>
             
-            <button className="w-full bg-primary hover:bg-accent text-white py-3 px-4 rounded-lg font-medium transition-colors mb-4">
+            <button 
+              onClick={() => {
+                if (isLoggedIn) {
+                  navigate('/checkout');
+                } else {
+                  navigate('/login?error=Please log in to proceed with checkout');
+                }
+              }}
+              className="w-full bg-primary hover:bg-accent text-white py-3 px-4 rounded-lg font-medium transition-colors mb-4"
+            >
               Checkout
             </button>
             
